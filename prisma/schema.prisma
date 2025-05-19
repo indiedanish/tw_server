@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LocationData {
+  id            Int      @id @default(autoincrement())
+  accuracy      Float?
+  altitude      Float?
+  bearing       Float?
+  deviceRDT     String?
+  emailAddress  String?
+  gmtSettings   String?
+  igStatus      Int?
+  imei          String?
+  latitude      Float
+  localPrimaryId Int?
+  longitude     Float
+  name          String?
+  phoneNo       String?
+  provider      String?
+  reason        String?
+  speed         Float?
+  time          BigInt?
+  versionNo     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([imei])
+  @@index([latitude, longitude])
+}
