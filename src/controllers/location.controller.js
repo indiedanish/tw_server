@@ -103,24 +103,77 @@ exports.saveLocationData = async (req, res) => {
  */
 exports.getAllLocationData = async (req, res) => {
   try {
-    const locationData = await prisma.locationData.findMany({
-      include: {
-        device: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const { imei, startDate, endDate, limit = 50, offset = 0 } = req.query;
 
-    // Convert BigInt to string for JSON response
-    const responseData = locationData.map((data) => ({
+    // Build where clause dynamically based on filters
+    const whereClause = {};
+
+    // Filter by IMEI if provided
+    if (imei) {
+      whereClause.imei = imei;
+    }
+
+    // Filter by date range if provided
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+
+      if (endDate) {
+        // Add 23:59:59 to end date to include the entire day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
+    }
+
+    // Fetch location data and devices separately
+    const [locationData, devices] = await Promise.all([
+      prisma.locationData.findMany({
+        where: whereClause,
+        include: {
+          device: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: parseInt(limit),
+        skip: parseInt(offset),
+      }),
+      prisma.device.findMany({
+        include: {
+          _count: {
+            select: { locationData: true },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+    ]);
+
+    // Convert BigInt to string for JSON response in location data
+    const responseLocationData = locationData.map((data) => ({
       ...data,
       time: data.time ? data.time.toString() : null,
     }));
 
     return res.status(200).json({
       success: true,
-      data: responseData,
+      locationsData: responseLocationData,
+      devices: devices,
+      filters: {
+        imei: imei || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      },
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        total: responseLocationData.length,
+      },
     });
   } catch (error) {
     console.error("Error fetching location data:", error);
@@ -260,6 +313,42 @@ exports.getLocationDataByImei = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch location data for device",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get all unique IMEIs for dropdown filter
+ */
+exports.getAllImeis = async (req, res) => {
+  try {
+    const imeis = await prisma.locationData.findMany({
+      select: {
+        imei: true,
+      },
+      distinct: ["imei"],
+      where: {
+        imei: {
+          not: null,
+        },
+      },
+      orderBy: {
+        imei: "asc",
+      },
+    });
+
+    const imeiList = imeis.map((item) => item.imei).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      data: imeiList,
+    });
+  } catch (error) {
+    console.error("Error fetching IMEIs:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch IMEIs",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
