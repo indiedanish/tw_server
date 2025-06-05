@@ -1,11 +1,47 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const locationController = require('../controllers/location.controller');
+const locationController = require("../controllers/location.controller");
 
 /**
  * @swagger
  * components:
  *   schemas:
+ *     Device:
+ *       type: object
+ *       required:
+ *         - imei
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Device ID
+ *         imei:
+ *           type: string
+ *           description: Unique IMEI number of the device
+ *         name:
+ *           type: string
+ *           description: Device name
+ *         phoneNo:
+ *           type: string
+ *           description: Phone number associated with device
+ *         emailAddress:
+ *           type: string
+ *           description: Email address associated with device
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Device creation timestamp
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Device last update timestamp
+ *       example:
+ *         id: 1
+ *         imei: "865632050026800"
+ *         name: "Tracker Device 1"
+ *         phoneNo: "TST123"
+ *         emailAddress: "device@example.com"
+ *         createdAt: "2025-01-30T02:04:27.703Z"
+ *         updatedAt: "2025-01-30T02:04:27.703Z"
  *     LocationData:
  *       type: object
  *       required:
@@ -67,6 +103,11 @@ const locationController = require('../controllers/location.controller');
  *         versionNo:
  *           type: string
  *           description: Version number of the device
+ *         deviceId:
+ *           type: integer
+ *           description: Associated device ID
+ *         device:
+ *           $ref: '#/components/schemas/Device'
  *       example:
  *         accuracy: 3.9
  *         altitude: 198
@@ -86,14 +127,16 @@ const locationController = require('../controllers/location.controller');
  *         speed: 95
  *         time: 1738227867703
  *         versionNo: "v 250111"
+ *         deviceId: 1
  */
 
 /**
  * @swagger
  * /api/location:
  *   post:
- *     summary: Save location tracking data
+ *     summary: Save location tracking data and create/link device
  *     tags: [Location]
+ *     description: Saves location data and automatically creates a device if IMEI is provided and doesn't exist
  *     requestBody:
  *       required: true
  *       content:
@@ -102,7 +145,7 @@ const locationController = require('../controllers/location.controller');
  *             $ref: '#/components/schemas/LocationData'
  *     responses:
  *       201:
- *         description: Location data successfully saved
+ *         description: Location data successfully saved and device created/linked
  *         content:
  *           application/json:
  *             schema:
@@ -121,7 +164,7 @@ const locationController = require('../controllers/location.controller');
  *       500:
  *         description: Server error
  */
-router.post('/location', locationController.saveLocationData);
+router.post("/location", locationController.saveLocationData);
 
 /**
  * @swagger
@@ -131,7 +174,7 @@ router.post('/location', locationController.saveLocationData);
  *     tags: [Location]
  *     responses:
  *       200:
- *         description: List of all location data
+ *         description: List of all location data with device information
  *         content:
  *           application/json:
  *             schema:
@@ -147,6 +190,135 @@ router.post('/location', locationController.saveLocationData);
  *       500:
  *         description: Server error
  */
-router.get('/location', locationController.getAllLocationData);
+router.get("/location", locationController.getAllLocationData);
+
+/**
+ * @swagger
+ * /api/devices:
+ *   get:
+ *     summary: Get all devices
+ *     tags: [Device]
+ *     responses:
+ *       200:
+ *         description: List of all devices with location data count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Device'
+ *                       - type: object
+ *                         properties:
+ *                           _count:
+ *                             type: object
+ *                             properties:
+ *                               locationData:
+ *                                 type: integer
+ *       500:
+ *         description: Server error
+ */
+router.get("/devices", locationController.getAllDevices);
+
+/**
+ * @swagger
+ * /api/devices/{imei}:
+ *   get:
+ *     summary: Get device by IMEI
+ *     tags: [Device]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: IMEI number of the device
+ *     responses:
+ *       200:
+ *         description: Device information with recent location data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Device'
+ *                     - type: object
+ *                       properties:
+ *                         locationData:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/LocationData'
+ *                         _count:
+ *                           type: object
+ *                           properties:
+ *                             locationData:
+ *                               type: integer
+ *       404:
+ *         description: Device not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/devices/:imei", locationController.getDeviceByImei);
+
+/**
+ * @swagger
+ * /api/devices/{imei}/locations:
+ *   get:
+ *     summary: Get location data for a specific device
+ *     tags: [Device]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: IMEI number of the device
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of records to skip for pagination
+ *     responses:
+ *       200:
+ *         description: Location data for the specified device
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/LocationData'
+ *       404:
+ *         description: Device not found
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/devices/:imei/locations",
+  locationController.getLocationDataByImei
+);
 
 module.exports = router;

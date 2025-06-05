@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 /**
@@ -13,8 +13,40 @@ exports.saveLocationData = async (req, res) => {
     if (!locationData.latitude || !locationData.longitude) {
       return res.status(400).json({
         success: false,
-        message: 'Latitude and longitude are required fields',
+        message: "Latitude and longitude are required fields",
       });
+    }
+
+    let deviceId = null;
+
+    // Handle device creation/lookup if IMEI is provided
+    if (locationData.imei) {
+      try {
+        // Check if device with this IMEI already exists
+        let device = await prisma.device.findUnique({
+          where: { imei: locationData.imei },
+        });
+
+        // If device doesn't exist, create a new one
+        if (!device) {
+          device = await prisma.device.create({
+            data: {
+              imei: locationData.imei,
+              name: locationData.name,
+              phoneNo: locationData.phoneNo,
+              emailAddress: locationData.emailAddress,
+            },
+          });
+          console.log(`Created new device with IMEI: ${locationData.imei}`);
+        } else {
+          console.log(`Using existing device with IMEI: ${locationData.imei}`);
+        }
+
+        deviceId = device.id;
+      } catch (deviceError) {
+        console.error("Error handling device:", deviceError);
+        // Continue without device association if there's an error
+      }
     }
 
     // Save data to database
@@ -38,6 +70,10 @@ exports.saveLocationData = async (req, res) => {
         speed: locationData.speed,
         time: locationData.time ? BigInt(locationData.time) : null,
         versionNo: locationData.versionNo,
+        deviceId: deviceId,
+      },
+      include: {
+        device: true,
       },
     });
 
@@ -49,15 +85,15 @@ exports.saveLocationData = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Location data saved successfully',
+      message: "Location data saved successfully",
       data: responseData,
     });
   } catch (error) {
-    console.error('Error saving location data:', error);
+    console.error("Error saving location data:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to save location data',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: "Failed to save location data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -68,13 +104,16 @@ exports.saveLocationData = async (req, res) => {
 exports.getAllLocationData = async (req, res) => {
   try {
     const locationData = await prisma.locationData.findMany({
+      include: {
+        device: true,
+      },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     // Convert BigInt to string for JSON response
-    const responseData = locationData.map(data => ({
+    const responseData = locationData.map((data) => ({
       ...data,
       time: data.time ? data.time.toString() : null,
     }));
@@ -84,11 +123,144 @@ exports.getAllLocationData = async (req, res) => {
       data: responseData,
     });
   } catch (error) {
-    console.error('Error fetching location data:', error);
+    console.error("Error fetching location data:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch location data',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: "Failed to fetch location data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get all devices
+ */
+exports.getAllDevices = async (req, res) => {
+  try {
+    const devices = await prisma.device.findMany({
+      include: {
+        _count: {
+          select: { locationData: true },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: devices,
+    });
+  } catch (error) {
+    console.error("Error fetching devices:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch devices",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get device by IMEI
+ */
+exports.getDeviceByImei = async (req, res) => {
+  try {
+    const { imei } = req.params;
+
+    const device = await prisma.device.findUnique({
+      where: { imei },
+      include: {
+        locationData: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 10, // Get last 10 location records
+        },
+        _count: {
+          select: { locationData: true },
+        },
+      },
+    });
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found",
+      });
+    }
+
+    // Convert BigInt to string for JSON response
+    const responseData = {
+      ...device,
+      locationData: device.locationData.map((data) => ({
+        ...data,
+        time: data.time ? data.time.toString() : null,
+      })),
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error fetching device:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch device",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get location data for a specific device
+ */
+exports.getLocationDataByImei = async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const device = await prisma.device.findUnique({
+      where: { imei },
+    });
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found",
+      });
+    }
+
+    const locationData = await prisma.locationData.findMany({
+      where: { deviceId: device.id },
+      include: {
+        device: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: parseInt(limit),
+      skip: parseInt(offset),
+    });
+
+    // Convert BigInt to string for JSON response
+    const responseData = locationData.map((data) => ({
+      ...data,
+      time: data.time ? data.time.toString() : null,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error fetching location data for device:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch location data for device",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
