@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const locationController = require("../controllers/location.controller");
+const configController = require("../controllers/config.controller");
+const {
+  validateDeviceConfigData,
+} = require("../middleware/validation.middleware");
 
 /**
  * @swagger
@@ -128,6 +132,98 @@ const locationController = require("../controllers/location.controller");
  *         time: 1738227867703
  *         versionNo: "v 250111"
  *         deviceId: 1
+ *     DeviceConfig:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Configuration ID
+ *         deviceId:
+ *           type: integer
+ *           description: Associated device ID
+ *         gpsTimer:
+ *           type: string
+ *           description: GPS timer interval in seconds
+ *           default: "5"
+ *         configTimer:
+ *           type: string
+ *           description: Configuration timer interval in seconds
+ *           default: "60"
+ *         uploadTimer:
+ *           type: string
+ *           description: Upload timer interval in seconds
+ *           default: "10"
+ *         retryCounter:
+ *           type: string
+ *           description: Number of retry attempts
+ *           default: "10"
+ *         angleThreshold:
+ *           type: string
+ *           description: Angle threshold in degrees
+ *           default: "45"
+ *         overSpeedingThreshold:
+ *           type: string
+ *           description: Over speeding threshold in km/h
+ *           default: "60"
+ *         travelStartTimer:
+ *           type: string
+ *           description: Travel start timer in seconds
+ *           default: "20"
+ *         travelStopTimer:
+ *           type: string
+ *           description: Travel stop timer in seconds
+ *           default: "20"
+ *         movingTimer:
+ *           type: string
+ *           description: Moving timer in seconds
+ *           default: "60"
+ *         stopTimer:
+ *           type: string
+ *           description: Stop timer in seconds
+ *           default: "130"
+ *         distanceThreshold:
+ *           type: string
+ *           description: Distance threshold in meters
+ *           default: "1000"
+ *         heartbeatTimer:
+ *           type: string
+ *           description: Heartbeat timer in seconds
+ *           default: "30"
+ *         liveStatusUpdateTimer:
+ *           type: string
+ *           description: Live status update timer in seconds
+ *           default: "30"
+ *         baseUrl:
+ *           type: string
+ *           description: Base URL for device communications
+ *           default: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Configuration creation timestamp
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Configuration last update timestamp
+ *         device:
+ *           $ref: '#/components/schemas/Device'
+ *       example:
+ *         id: 1
+ *         deviceId: 1
+ *         gpsTimer: "5"
+ *         configTimer: "60"
+ *         uploadTimer: "10"
+ *         retryCounter: "10"
+ *         angleThreshold: "45"
+ *         overSpeedingThreshold: "60"
+ *         travelStartTimer: "20"
+ *         travelStopTimer: "20"
+ *         movingTimer: "60"
+ *         stopTimer: "130"
+ *         distanceThreshold: "1000"
+ *         heartbeatTimer: "30"
+ *         liveStatusUpdateTimer: "30"
+ *         baseUrl: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
  */
 
 /**
@@ -320,5 +416,263 @@ router.get(
   "/devices/:imei/locations",
   locationController.getLocationDataByImei
 );
+
+/**
+ * @swagger
+ * /api/devices/{imei}/config:
+ *   post:
+ *     summary: Create or update device configuration
+ *     tags: [Configuration]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Device IMEI
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               gpsTimer:
+ *                 type: string
+ *               configTimer:
+ *                 type: string
+ *               uploadTimer:
+ *                 type: string
+ *               retryCounter:
+ *                 type: string
+ *               angleThreshold:
+ *                 type: string
+ *               overSpeedingThreshold:
+ *                 type: string
+ *               travelStartTimer:
+ *                 type: string
+ *               travelStopTimer:
+ *                 type: string
+ *               movingTimer:
+ *                 type: string
+ *               stopTimer:
+ *                 type: string
+ *               distanceThreshold:
+ *                 type: string
+ *               heartbeatTimer:
+ *                 type: string
+ *               liveStatusUpdateTimer:
+ *                 type: string
+ *               baseUrl:
+ *                 type: string
+ *             example:
+ *               gpsTimer: "5"
+ *               configTimer: "60"
+ *               uploadTimer: "10"
+ *               retryCounter: "10"
+ *               angleThreshold: "45"
+ *               overSpeedingThreshold: "60"
+ *               travelStartTimer: "20"
+ *               travelStopTimer: "20"
+ *               movingTimer: "60"
+ *               stopTimer: "130"
+ *               distanceThreshold: "1000"
+ *               heartbeatTimer: "30"
+ *               liveStatusUpdateTimer: "30"
+ *               baseUrl: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
+ *     responses:
+ *       200:
+ *         description: Configuration updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Device configuration updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/DeviceConfig'
+ *       201:
+ *         description: Configuration created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Device configuration created successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/DeviceConfig'
+ *       400:
+ *         description: Invalid input data
+ *       404:
+ *         description: Device not found
+ *       500:
+ *         description: Server error
+ */
+router.post(
+  "/devices/:imei/config",
+  validateDeviceConfigData,
+  configController.setDeviceConfig
+);
+
+/**
+ * @swagger
+ * /api/devices/{imei}/config:
+ *   get:
+ *     summary: Get device configuration by device ID
+ *     tags: [Configuration]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Device IMEI
+ *     responses:
+ *       200:
+ *         description: Device configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/DeviceConfig'
+ *       404:
+ *         description: Device or configuration not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/devices/:imei/config", configController.getDeviceConfig);
+
+/**
+ * @swagger
+ * /api/devices/imei/{imei}/config:
+ *   get:
+ *     summary: Get device configuration by IMEI
+ *     tags: [Configuration]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Device IMEI
+ *     responses:
+ *       200:
+ *         description: Device configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/DeviceConfig'
+ *       404:
+ *         description: Device or configuration not found
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/devices/imei/:imei/config",
+  configController.getDeviceConfigByImei
+);
+
+/**
+ * @swagger
+ * /api/configs:
+ *   get:
+ *     summary: Get all device configurations
+ *     tags: [Configuration]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of records to skip for pagination
+ *     responses:
+ *       200:
+ *         description: List of all device configurations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/DeviceConfig'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *       500:
+ *         description: Server error
+ */
+router.get("/configs", configController.getAllDeviceConfigs);
+
+/**
+ * @swagger
+ * /api/devices/{imei}/config:
+ *   delete:
+ *     summary: Delete device configuration
+ *     tags: [Configuration]
+ *     parameters:
+ *       - in: path
+ *         name: imei
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Device IMEI
+ *     responses:
+ *       200:
+ *         description: Configuration deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Device configuration deleted successfully"
+ *       404:
+ *         description: Configuration not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/devices/:imei/config", configController.deleteDeviceConfig);
 
 module.exports = router;
