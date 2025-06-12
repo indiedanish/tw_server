@@ -103,7 +103,11 @@ exports.saveLocationData = async (req, res) => {
  */
 exports.getAllLocationData = async (req, res) => {
   try {
-    const { imei, startDate, endDate, limit = 50, page = 1 } = req.query;
+    let { imei, startDate, endDate, limit = 50, page = 1 } = req.query;
+
+    if (imei == "all") {
+      imei = null;
+    }
 
     // Fix: Calculate offset properly for pagination
     const offset = (parseInt(page) - 1) * parseInt(limit);
