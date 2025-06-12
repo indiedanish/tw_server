@@ -48,6 +48,26 @@ model DeviceConfig {
   @@index([deviceImei])
 }
 
+model DefaultConfig {
+  id                    Int      @id @default(autoincrement())
+  gpsTimer              String   @default("5")
+  configTimer           String   @default("60")
+  uploadTimer           String   @default("10")
+  retryCounter          String   @default("10")
+  angleThreshold        String   @default("45")
+  overSpeedingThreshold String   @default("60")
+  travelStartTimer      String   @default("20")
+  travelStopTimer       String   @default("20")
+  movingTimer           String   @default("60")
+  stopTimer             String   @default("130")
+  distanceThreshold     String   @default("1000")
+  heartbeatTimer        String   @default("30")
+  liveStatusUpdateTimer String   @default("30")
+  baseUrl               String   @default("https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
 model LocationData {
   id             Int      @id @default(autoincrement())
   accuracy       Float?

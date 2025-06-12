@@ -129,8 +129,8 @@ exports.getAllLocationData = async (req, res) => {
       }
     }
 
-    // Fetch location data and devices separately
-    const [locationData, devices] = await Promise.all([
+    // Fetch location data, total count, and devices separately
+    const [locationData, totalCount, devices] = await Promise.all([
       prisma.locationData.findMany({
         where: whereClause,
         include: {
@@ -141,6 +141,9 @@ exports.getAllLocationData = async (req, res) => {
         },
         take: parseInt(limit),
         skip: parseInt(offset),
+      }),
+      prisma.locationData.count({
+        where: whereClause,
       }),
       prisma.device.findMany({
         include: {
@@ -160,6 +163,12 @@ exports.getAllLocationData = async (req, res) => {
       time: data.time ? data.time.toString() : null,
     }));
 
+    // Calculate pagination metadata
+    const currentPage = Math.floor(parseInt(offset) / parseInt(limit)) + 1;
+    const totalPages = Math.ceil(totalCount / parseInt(limit));
+    const hasNextPage = currentPage < totalPages;
+    const hasPreviousPage = currentPage > 1;
+
     return res.status(200).json({
       success: true,
       locationsData: responseLocationData,
@@ -170,9 +179,14 @@ exports.getAllLocationData = async (req, res) => {
         endDate: endDate || null,
       },
       pagination: {
+        currentPage: currentPage,
+        totalPages: totalPages,
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: responseLocationData.length,
+        total: totalCount,
+        hasNextPage: hasNextPage,
+        hasPreviousPage: hasPreviousPage,
+        resultCount: responseLocationData.length,
       },
     });
   } catch (error) {

@@ -301,3 +301,157 @@ exports.deleteDeviceConfig = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get default configuration
+ */
+exports.getDefaultConfig = async (req, res) => {
+  try {
+    // Get the first (and should be only) default config record
+    let defaultConfig = await prisma.defaultConfig.findFirst();
+
+    // If no default config exists, create one with default values
+    if (!defaultConfig) {
+      defaultConfig = await prisma.defaultConfig.create({
+        data: {
+          gpsTimer: "5",
+          configTimer: "60",
+          uploadTimer: "10",
+          retryCounter: "10",
+          angleThreshold: "45",
+          overSpeedingThreshold: "60",
+          travelStartTimer: "20",
+          travelStopTimer: "20",
+          movingTimer: "60",
+          stopTimer: "130",
+          distanceThreshold: "1000",
+          heartbeatTimer: "30",
+          liveStatusUpdateTimer: "30",
+          baseUrl:
+            "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: defaultConfig,
+    });
+  } catch (error) {
+    console.error("Error fetching default config:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch default configuration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Update default configuration
+ */
+exports.updateDefaultConfig = async (req, res) => {
+  try {
+    const configData = req.body;
+
+    // Get existing default config or create if none exists
+    let defaultConfig = await prisma.defaultConfig.findFirst();
+
+    if (!defaultConfig) {
+      // Create new default config
+      defaultConfig = await prisma.defaultConfig.create({
+        data: {
+          gpsTimer: configData.gpsTimer || "5",
+          configTimer: configData.configTimer || "60",
+          uploadTimer: configData.uploadTimer || "10",
+          retryCounter: configData.retryCounter || "10",
+          angleThreshold: configData.angleThreshold || "45",
+          overSpeedingThreshold: configData.overSpeedingThreshold || "60",
+          travelStartTimer: configData.travelStartTimer || "20",
+          travelStopTimer: configData.travelStopTimer || "20",
+          movingTimer: configData.movingTimer || "60",
+          stopTimer: configData.stopTimer || "130",
+          distanceThreshold: configData.distanceThreshold || "1000",
+          heartbeatTimer: configData.heartbeatTimer || "30",
+          liveStatusUpdateTimer: configData.liveStatusUpdateTimer || "30",
+          baseUrl:
+            configData.baseUrl ||
+            "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx",
+        },
+      });
+    } else {
+      // Update existing default config
+      defaultConfig = await prisma.defaultConfig.update({
+        where: { id: defaultConfig.id },
+        data: {
+          gpsTimer:
+            configData.gpsTimer !== undefined
+              ? configData.gpsTimer.toString()
+              : defaultConfig.gpsTimer,
+          configTimer:
+            configData.configTimer !== undefined
+              ? configData.configTimer.toString()
+              : defaultConfig.configTimer,
+          uploadTimer:
+            configData.uploadTimer !== undefined
+              ? configData.uploadTimer.toString()
+              : defaultConfig.uploadTimer,
+          retryCounter:
+            configData.retryCounter !== undefined
+              ? configData.retryCounter.toString()
+              : defaultConfig.retryCounter,
+          angleThreshold:
+            configData.angleThreshold !== undefined
+              ? configData.angleThreshold.toString()
+              : defaultConfig.angleThreshold,
+          overSpeedingThreshold:
+            configData.overSpeedingThreshold !== undefined
+              ? configData.overSpeedingThreshold.toString()
+              : defaultConfig.overSpeedingThreshold,
+          travelStartTimer:
+            configData.travelStartTimer !== undefined
+              ? configData.travelStartTimer.toString()
+              : defaultConfig.travelStartTimer,
+          travelStopTimer:
+            configData.travelStopTimer !== undefined
+              ? configData.travelStopTimer.toString()
+              : defaultConfig.travelStopTimer,
+          movingTimer:
+            configData.movingTimer !== undefined
+              ? configData.movingTimer.toString()
+              : defaultConfig.movingTimer,
+          stopTimer:
+            configData.stopTimer !== undefined
+              ? configData.stopTimer.toString()
+              : defaultConfig.stopTimer,
+          distanceThreshold:
+            configData.distanceThreshold !== undefined
+              ? configData.distanceThreshold.toString()
+              : defaultConfig.distanceThreshold,
+          heartbeatTimer:
+            configData.heartbeatTimer !== undefined
+              ? configData.heartbeatTimer.toString()
+              : defaultConfig.heartbeatTimer,
+          liveStatusUpdateTimer:
+            configData.liveStatusUpdateTimer !== undefined
+              ? configData.liveStatusUpdateTimer.toString()
+              : defaultConfig.liveStatusUpdateTimer,
+          baseUrl: configData.baseUrl || defaultConfig.baseUrl,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Default configuration updated successfully",
+      data: defaultConfig,
+    });
+  } catch (error) {
+    console.error("Error updating default config:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update default configuration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};

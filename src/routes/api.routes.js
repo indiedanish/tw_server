@@ -224,6 +224,92 @@ const {
  *         heartbeatTimer: "30"
  *         liveStatusUpdateTimer: "30"
  *         baseUrl: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
+ *     DefaultConfig:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Configuration ID
+ *         gpsTimer:
+ *           type: string
+ *           description: GPS timer interval in seconds
+ *           default: "5"
+ *         configTimer:
+ *           type: string
+ *           description: Configuration timer interval in seconds
+ *           default: "60"
+ *         uploadTimer:
+ *           type: string
+ *           description: Upload timer interval in seconds
+ *           default: "10"
+ *         retryCounter:
+ *           type: string
+ *           description: Number of retry attempts
+ *           default: "10"
+ *         angleThreshold:
+ *           type: string
+ *           description: Angle threshold in degrees
+ *           default: "45"
+ *         overSpeedingThreshold:
+ *           type: string
+ *           description: Over speeding threshold in km/h
+ *           default: "60"
+ *         travelStartTimer:
+ *           type: string
+ *           description: Travel start timer in seconds
+ *           default: "20"
+ *         travelStopTimer:
+ *           type: string
+ *           description: Travel stop timer in seconds
+ *           default: "20"
+ *         movingTimer:
+ *           type: string
+ *           description: Moving timer in seconds
+ *           default: "60"
+ *         stopTimer:
+ *           type: string
+ *           description: Stop timer in seconds
+ *           default: "130"
+ *         distanceThreshold:
+ *           type: string
+ *           description: Distance threshold in meters
+ *           default: "1000"
+ *         heartbeatTimer:
+ *           type: string
+ *           description: Heartbeat timer in seconds
+ *           default: "30"
+ *         liveStatusUpdateTimer:
+ *           type: string
+ *           description: Live status update timer in seconds
+ *           default: "30"
+ *         baseUrl:
+ *           type: string
+ *           description: Base URL for device communications
+ *           default: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Configuration creation timestamp
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Configuration last update timestamp
+ *       example:
+ *         id: 1
+ *         gpsTimer: "5"
+ *         configTimer: "60"
+ *         uploadTimer: "10"
+ *         retryCounter: "10"
+ *         angleThreshold: "45"
+ *         overSpeedingThreshold: "60"
+ *         travelStartTimer: "20"
+ *         travelStopTimer: "20"
+ *         movingTimer: "60"
+ *         stopTimer: "130"
+ *         distanceThreshold: "1000"
+ *         heartbeatTimer: "30"
+ *         liveStatusUpdateTimer: "30"
+ *         baseUrl: "https://connectlive.commtw.com:446/twconnectlive/TrackingServices.asmx"
  */
 
 /**
@@ -674,5 +760,115 @@ router.get("/configs", configController.getAllDeviceConfigs);
  *         description: Server error
  */
 router.delete("/devices/:imei/config", configController.deleteDeviceConfig);
+
+/**
+ * @swagger
+ * /api/default-config:
+ *   get:
+ *     summary: Get default configuration
+ *     tags: [Default Configuration]
+ *     responses:
+ *       200:
+ *         description: Default configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/DefaultConfig'
+ *       500:
+ *         description: Server error
+ */
+router.get("/default-config", configController.getDefaultConfig);
+
+/**
+ * @swagger
+ * /api/default-config:
+ *   put:
+ *     summary: Update default configuration
+ *     tags: [Default Configuration]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               gpsTimer:
+ *                 type: integer
+ *                 description: GPS timer interval in seconds
+ *                 example: 5
+ *               configTimer:
+ *                 type: integer
+ *                 description: Configuration timer interval in seconds
+ *                 example: 60
+ *               uploadTimer:
+ *                 type: integer
+ *                 description: Upload timer interval in seconds
+ *                 example: 10
+ *               retryCounter:
+ *                 type: integer
+ *                 description: Number of retry attempts
+ *                 example: 10
+ *               angleThreshold:
+ *                 type: integer
+ *                 description: Angle threshold in degrees
+ *                 example: 45
+ *               overSpeedingThreshold:
+ *                 type: integer
+ *                 description: Over speeding threshold in km/h
+ *                 example: 60
+ *               travelStartTimer:
+ *                 type: integer
+ *                 description: Travel start timer in seconds
+ *                 example: 20
+ *               travelStopTimer:
+ *                 type: integer
+ *                 description: Travel stop timer in seconds
+ *                 example: 20
+ *               movingTimer:
+ *                 type: integer
+ *                 description: Moving timer in seconds
+ *                 example: 60
+ *               stopTimer:
+ *                 type: integer
+ *                 description: Stop timer in seconds
+ *                 example: 130
+ *               distanceThreshold:
+ *                 type: integer
+ *                 description: Distance threshold in meters
+ *                 example: 1000
+ *               heartbeatTimer:
+ *                 type: integer
+ *                 description: Heartbeat timer in seconds
+ *                 example: 30
+ *               liveStatusUpdateTimer:
+ *                 type: integer
+ *                 description: Live status update timer in seconds
+ *                 example: 30
+ *     responses:
+ *       200:
+ *         description: Default configuration updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Default configuration updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/DefaultConfig'
+ *       500:
+ *         description: Server error
+ */
+router.put("/default-config", configController.updateDefaultConfig);
 
 module.exports = router;
