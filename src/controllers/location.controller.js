@@ -103,7 +103,10 @@ exports.saveLocationData = async (req, res) => {
  */
 exports.getAllLocationData = async (req, res) => {
   try {
-    const { imei, startDate, endDate, limit = 50, offset = 0 } = req.query;
+    const { imei, startDate, endDate, limit = 50, page = 1 } = req.query;
+
+    // Fix: Calculate offset properly for pagination
+    const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Build where clause dynamically based on filters
     const whereClause = {};
@@ -140,7 +143,7 @@ exports.getAllLocationData = async (req, res) => {
           createdAt: "desc",
         },
         take: parseInt(limit),
-        skip: parseInt(offset),
+        skip: offset, // Use the corrected offset
       }),
       prisma.locationData.count({
         where: whereClause,
@@ -164,7 +167,7 @@ exports.getAllLocationData = async (req, res) => {
     }));
 
     // Calculate pagination metadata
-    const currentPage = Math.floor(parseInt(offset) / parseInt(limit)) + 1;
+    const currentPage = parseInt(page);
     const totalPages = Math.ceil(totalCount / parseInt(limit));
     const hasNextPage = currentPage < totalPages;
     const hasPreviousPage = currentPage > 1;
@@ -182,7 +185,7 @@ exports.getAllLocationData = async (req, res) => {
         currentPage: currentPage,
         totalPages: totalPages,
         limit: parseInt(limit),
-        offset: parseInt(offset),
+        offset: offset, // Return the corrected offset
         total: totalCount,
         hasNextPage: hasNextPage,
         hasPreviousPage: hasPreviousPage,
