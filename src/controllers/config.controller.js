@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 exports.setDeviceConfig = async (req, res) => {
   try {
     const { imei } = req.params;
+
     const configData = req.body;
 
     // Validate device exists

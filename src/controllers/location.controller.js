@@ -216,6 +216,7 @@ exports.getAllDevices = async (req, res) => {
         _count: {
           select: { locationData: true },
         },
+        config: true,
       },
       orderBy: {
         createdAt: "desc",
